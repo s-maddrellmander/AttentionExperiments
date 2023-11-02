@@ -1,0 +1,6 @@
+jax
+jaxlib
+matplotlib
+pytest
+black==23.0.1
+isort
