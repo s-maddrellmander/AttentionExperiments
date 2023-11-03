@@ -8,6 +8,7 @@ from jax import lax
 def softmax(x):
     return jnp.exp(x - logsumexp(x, axis=-1, keepdims=True))
 
+
 def scaled_dot_product_attention(Q, K, V, return_scores=False):
     d_k = Q.shape[-1]
     scores = jnp.matmul(Q, K.transpose(-1, -2)) / jnp.sqrt(d_k)
@@ -17,17 +18,18 @@ def scaled_dot_product_attention(Q, K, V, return_scores=False):
         return output, weights, scores  # return both output and attention weights
     return output
 
+
 def sliding_window_attention(Q, K, V, window_size, sparse=False):
     if sparse is False:
         d_k = Q.shape[-1]
         scores = jnp.matmul(Q, K.transpose(-1, -2)) / jnp.sqrt(d_k)
-        
+
         # Create a mask for values outside the sliding window
         max_seq_len = Q.shape[0]
         indices = jnp.arange(max_seq_len).reshape(-1, 1)
-        mask = (jnp.abs(indices - indices.T) > window_size // 2)
+        mask = jnp.abs(indices - indices.T) > window_size // 2
         scores = jnp.where(mask, jnp.float32(-1e9), scores)
-        
+
         weights = softmax(scores)
         return jnp.matmul(weights, V), scores
 
@@ -46,9 +48,11 @@ def sliding_window_attention(Q, K, V, window_size, sparse=False):
             # Use dynamic_slice to extract the relevant portion of K and V
             relevant_K = lax.dynamic_slice(K, (start, 0), (window_size_actual, d_k))
             relevant_V = lax.dynamic_slice(V, (start, 0), (window_size_actual, d_k))
-            
+
             # Compute scores only for the window
-            scores = jnp.matmul(Q[i:i+1], relevant_K.transpose(-1, -2)) / jnp.sqrt(d_k)
+            scores = jnp.matmul(Q[i : i + 1], relevant_K.transpose(-1, -2)) / jnp.sqrt(
+                d_k
+            )
 
             # Compute weights and output
             weights = softmax(scores)
